@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-02-10T12:26:21.026Z",
+  "updated_at": "2026-02-10T12:31:56.105Z",
   "air": {
-    "source": "OpenMeteo (Backup)",
-    "aqi": 183,
-    "pm25": 48.4,
-    "pm10": 48.7,
-    "o3": 112,
-    "status": "เริ่มมีผลกระทบ",
-    "time": "2026-02-10 19:00",
-    "location": "หลักสี่ (Backup)"
+    "source": "Air4Thai",
+    "aqi": "-",
+    "pm25": "-",
+    "pm10": "-",
+    "o3": "-",
+    "status": "รอข้อมูล",
+    "time": "undefined undefined",
+    "location": "สำนักงานเขตหลักสี่"
   },
   "post": {
     "timestamp": "2/10/2026 12:14:39",
