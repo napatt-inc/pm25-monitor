@@ -95,15 +95,42 @@ async function run() {
     };
 
     // Google Sheet (คงเดิม)
+    // ... (ส่วน Air4Thai เหมือนเดิม) ...
+
+    // --- 3. Google Sheet (ประกาศ) ---
     try {
-        const sheetRes = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vSoa90gy2q_JHhquiUHEYcJA_O-JI0ntib_9NG8heNoGv-GEtco9Bv-bWiSib3vrg7E85Dz5H7JnlWO/pub?gid=0&single=true&output=csv');
-        const rows = (await sheetRes.text()).split(/\r?\n/);
+        // เพิ่ม ?t=... เพื่อบังคับให้ Google ส่งไฟล์ล่าสุดเสมอ (กัน Cache)
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoa90gy2q_JHhquiUHEYcJA_O-JI0ntib_9NG8heNoGv-GEtco9Bv-bWiSib3vrg7E85Dz5H7JnlWO/pub?gid=0&single=true&output=csv';
+        const sheetRes = await fetch(sheetUrl + '&t=' + new Date().getTime()); 
+        
+        const text = await sheetRes.text();
+        
+        // กรองเอาเฉพาะบรรทัดที่มีข้อมูลจริง (ตัดบรรทัดว่างทิ้ง)
+        const rows = text.split(/\r?\n/).filter(row => row.trim() !== "");
+        
         if (rows.length > 1) {
-            const lastRow = rows[rows.length - 1] || rows[rows.length - 2];
+            // เอาบรรทัดล่างสุดจริงๆ
+            const lastRow = rows[rows.length - 1]; 
+            
+            // แยกคอลัมน์ (รองรับกรณีมีเครื่องหมายคอมม่าในข้อความ)
             const cols = lastRow.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
-            if(cols.length >= 3) postData = { timestamp: cols[0], type: cols[1], title: cols[2], fileUrl: cols[3] || '#' };
+            
+            // ตรวจสอบว่ามีข้อมูลครบไหม (Timestamp, Type, Title)
+            if(cols.length >= 3) {
+                postData = { 
+                    timestamp: cols[0], 
+                    type: cols[1], 
+                    title: cols[2], 
+                    fileUrl: cols[3] || '#' 
+                };
+                console.log(`📢 New Post Found: ${cols[2]}`);
+            }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.log(`❌ Sheet Error: ${e.message}`);
+    }
+
+    // ... (ส่วนบันทึกไฟล์ เหมือนเดิม) ...
 
     const output = { updated_at: new Date().toISOString(), air: airData, post: postData };
     fs.writeFileSync('data.json', JSON.stringify(output, null, 2));
@@ -111,3 +138,4 @@ async function run() {
 }
 
 run();
+
