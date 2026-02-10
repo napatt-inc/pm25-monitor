@@ -1,13 +1,13 @@
 const fs = require('fs');
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // ปิด SSL เพื่อความชัวร์
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // ปิด SSL
 
 async function run() {
-    console.log("🤖 Robot Starting (Specific Extraction Mode)...");
+    console.log("🤖 Robot Starting (Final Fix: AQILast Mode)...");
     
     let airData = {};
     let postData = null;
 
-    // ตัวแปรเก็บค่า (ค่าเริ่มต้น)
+    // ค่าเริ่มต้น
     let finalAQI = "-";
     let finalPM25 = "-";
     let finalPM10 = "-";
@@ -32,29 +32,34 @@ async function run() {
             console.log(`✅ Air4Thai Found: ${target.nameTH}`);
             finalLocation = target.nameTH;
 
-            // 🎯 จุดสำคัญ: เจาะเข้าไปใน LastUpdate เท่านั้น
-            const lastUp = target.LastUpdate;
+            // 🎯 แก้ไขจุดสำคัญ: ใช้ AQILast ตาม JSON ที่คุณส่งมา
+            const info = target.AQILast || target.LastUpdate; // กันเหนียวเผื่อมันสลับกลับ
             
-            if (lastUp) {
-                // ดึงวันที่และเวลา
-                if (lastUp.date && lastUp.time) {
-                    finalTime = `${lastUp.date} ${lastUp.time}`;
+            if (info) {
+                // ดึงเวลา
+                if (info.date && info.time) {
+                    finalTime = `${info.date} ${info.time}`;
                 }
 
-                // ดึง PM2.5 (ดูจาก XML คือ PM25 -> value)
-                if (lastUp.PM25 && lastUp.PM25.value) {
-                    finalPM25 = lastUp.PM25.value;
-                } else if (lastUp.pm25 && lastUp.pm25.value) {
-                     finalPM25 = lastUp.pm25.value;
+                // ดึง PM2.5 (จาก JSON: AQILast -> PM25 -> value)
+                if (info.PM25 && info.PM25.value && info.PM25.value !== "-1") {
+                    finalPM25 = info.PM25.value;
                 }
 
-                // ดึง AQI (ดูจาก XML คือ AQI -> aqi)
-                if (lastUp.AQI && lastUp.AQI.aqi) {
-                    finalAQI = lastUp.AQI.aqi;
-                    // ดึงระดับสี
-                    const lvl = lastUp.AQI.Level || "0";
+                // ดึง AQI (จาก JSON: AQILast -> AQI -> aqi)
+                // หรือบางทีอยู่ใน PM25 -> aqi ก็มี
+                if (info.AQI && info.AQI.aqi && info.AQI.aqi !== "-999") {
+                    finalAQI = info.AQI.aqi;
+                    // ดึงระดับสีจาก AQI
+                    const lvl = info.AQI.color_id || "0";
+                    // color_id 1=ดีมาก, 2=ดี, 3=ปานกลาง, 4=เริ่มมีผล, 5=มีผล
                     const levels = ["", "คุณภาพดีมาก", "คุณภาพดี", "ปานกลาง", "เริ่มมีผลกระทบ", "มีผลกระทบต่อสุขภาพ"];
                     finalStatus = levels[Number(lvl)] || "ปานกลาง";
+                } else if (info.PM25 && info.PM25.aqi) {
+                     finalAQI = info.PM25.aqi;
+                     const lvl = info.PM25.color_id || "3";
+                     const levels = ["", "คุณภาพดีมาก", "คุณภาพดี", "ปานกลาง", "เริ่มมีผลกระทบ", "มีผลกระทบต่อสุขภาพ"];
+                     finalStatus = levels[Number(lvl)] || "ปานกลาง";
                 }
             }
         }
@@ -63,6 +68,7 @@ async function run() {
     }
 
     // --- 2. OpenMeteo (PM10 & O3) ---
+    // เพราะใน JSON ของคุณค่า PM10/O3 เป็น "-1" (เสีย) เราเลยต้องดึงจากที่นี่แทน
     try {
         const res = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=13.887&longitude=100.579&current=pm10,ozone&timezone=Asia%2FBangkok');
         const data = await res.json();
@@ -70,7 +76,7 @@ async function run() {
         finalPM10 = data.current.pm10;
         finalO3 = data.current.ozone;
         
-        // ถ้า Air4Thai หาเวลาไม่เจอ ให้ใช้เวลาจาก OpenMeteo
+        // ถ้า Air4Thai ไม่มีเวลา ให้ใช้เวลาจาก OpenMeteo
         if (finalTime === "-" || finalTime.includes("undefined")) {
             finalTime = data.current.time.replace('T', ' ');
         }
@@ -79,8 +85,8 @@ async function run() {
     // สร้างข้อมูลสุดท้าย
     airData = {
         source: 'Air4Thai + OpenMeteo',
-        aqi: String(finalAQI),   // แปลงเป็นข้อความกันเหนียว
-        pm25: String(finalPM25), // แปลงเป็นข้อความกันเหนียว
+        aqi: String(finalAQI),
+        pm25: String(finalPM25),
         pm10: String(finalPM10),
         o3: String(finalO3),
         status: finalStatus,
@@ -88,7 +94,7 @@ async function run() {
         location: finalLocation
     };
 
-    // Google Sheet (ส่วนประกาศ)
+    // Google Sheet (คงเดิม)
     try {
         const sheetRes = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vSoa90gy2q_JHhquiUHEYcJA_O-JI0ntib_9NG8heNoGv-GEtco9Bv-bWiSib3vrg7E85Dz5H7JnlWO/pub?gid=0&single=true&output=csv');
         const rows = (await sheetRes.text()).split(/\r?\n/);
@@ -101,7 +107,7 @@ async function run() {
 
     const output = { updated_at: new Date().toISOString(), air: airData, post: postData };
     fs.writeFileSync('data.json', JSON.stringify(output, null, 2));
-    console.log("🎉 Process Complete:", JSON.stringify(airData));
+    console.log("🎉 Data Saved:", JSON.stringify(airData));
 }
 
 run();
