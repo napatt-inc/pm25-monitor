@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-02-10T13:11:58.309Z",
+  "updated_at": "2026-02-10T13:31:53.572Z",
   "air": {
     "source": "Air4Thai + OpenMeteo",
     "aqi": "93",
@@ -11,9 +11,9 @@
     "location": "สำนักงานเขตหลักสี่"
   },
   "post": {
-    "timestamp": "2/10/2026 12:14:39",
-    "type": "pdf",
-    "title": "รายชื่อผู้มีสิทธิ์สอบสัมภาษณ์",
-    "fileUrl": "https://drive.google.com/file/d/1JkxwhfIF1w5bUAQ6qRpLOVlE-blx2kWN/view?usp=drivesdk"
+    "timestamp": "2/10/2026 20:23:20",
+    "type": "image",
+    "title": "ทดสอบโพสภาพ",
+    "fileUrl": "https://drive.google.com/uc?export=view&id=1G113Lk9hpDgeJsDxnV4S1Vgn0fbN8jFB"
   }
 }
