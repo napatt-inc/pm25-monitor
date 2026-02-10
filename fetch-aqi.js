@@ -1,82 +1,100 @@
 const fs = require('fs');
 
-// --- ไม้ตาย: สั่งปิดการตรวจสอบความปลอดภัย SSL (แก้ปัญหาเว็บรัฐบาลใบรับรองเก่า) ---
+// ปิดการตรวจสอบ SSL เพื่อให้เข้าเว็บรัฐบาลได้ชัวร์ๆ
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 async function run() {
-    console.log("🤖 Robot Starting (Triple-Check Mode)...");
+    console.log("🤖 Robot Starting (Deep Search Mode)...");
     
     let airData = {};
     let postData = null;
 
-    // รายชื่อประตูที่จะลองเข้า (ลองทีละลิงก์)
-    const urls = [
-        // ประตู 1: ลิงก์สำหรับเว็บหลัก (มักจะเสถียรสุด)
-        'https://www.air4thai.com/forweb/getAQI_JSON.php?region=1',
-        // ประตู 2: ลิงก์ API โดยตรง (HTTP)
-        'http://air4thai.pcd.go.th/services/getNewAQI_JSON.php?region=1',
-        // ประตู 3: ลิงก์สำรองเก่า
-        'http://air4thai.pcd.go.th/services/getAQI_JSON.php?region=1'
-    ];
+    // ลิงก์ที่จะใช้ (แนะนำลิงก์นี้สำหรับ JSON ที่สมบูรณ์ที่สุด)
+    const url = 'http://air4thai.pcd.go.th/services/getNewAQI_JSON.php?region=1';
 
-    let foundData = null;
+    try {
+        console.log(`🔌 Connecting to Air4Thai...`);
+        const res = await fetch(url, {
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            },
+            signal: AbortSignal.timeout(15000) // ให้เวลา 15 วินาที
+        });
+        
+        if (!res.ok) throw new Error("Server Connect Failed");
+        
+        const data = await res.json();
+        const stations = data.stations || data;
 
-    // 1. เริ่มภารกิจเจาะ Air4Thai
-    for (const url of urls) {
-        try {
-            console.log(`🔌 Trying URL: ${url}`);
-            const res = await fetch(url, {
-                headers: { 
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Referer': 'https://www.air4thai.com/'
-                },
-                signal: AbortSignal.timeout(10000) // รอแค่ 10 วินาทีพอ เดี๋ยวช้า
-            });
-            
-            if (res.ok) {
-                const data = await res.json();
-                const stations = data.stations || data; // บางทีโครงสร้างไม่เหมือนกัน
-                
-                // หาเขตหลักสี่
-                let target = stations.find(s => s.stationID === "bkp97t"); // หาด้วยรหัส
-                if (!target) target = stations.find(s => s.nameTH.includes("หลักสี่")); // หาด้วยชื่อ
-                
-                if (target) {
-                    foundData = target;
-                    console.log(`✅ Success! Found: ${target.nameTH}`);
-                    break; // เจอแล้วหยุดหา! ออกจากลูปทันที
-                }
-            }
-        } catch (e) {
-            console.log(`❌ Failed: ${e.message}`);
+        // 🎯 1. ค้นหาเขตหลักสี่
+        let target = stations.find(s => s.stationID === "bkp97t"); 
+        if (!target) target = stations.find(s => s.nameTH.includes("หลักสี่"));
+        
+        // ถ้าไม่เจอจริงๆ ให้ใช้บางเขน
+        if (!target) {
+            console.log("⚠️ Lak Si not found, switching to Bang Khen...");
+            target = stations.find(s => s.stationID === "bkp53t");
         }
-    }
 
-    // แปลงข้อมูล Air4Thai (ถ้าหาเจอ)
-    if (foundData) {
-        const getVal = (v) => (v && v !== "-" && v !== "N/A" && v != -1) ? v : "-";
-        const getStatus = (lvl) => ["", "คุณภาพดีมาก", "คุณภาพดี", "ปานกลาง", "เริ่มมีผลกระทบ", "มีผลกระทบต่อสุขภาพ"][Number(lvl)] || "รอข้อมูล";
+        if (target) {
+            console.log(`✅ Found Station: ${target.nameTH}`);
 
-        // เช็คจุดที่ข้อมูลซ่อนอยู่ (บางทีอยู่ลึก บางทีอยู่ตื้น)
-        const d = foundData.LastUpdate || foundData; 
-        const AQI = d.AQI || {};
-        const PM25 = d.PM25 || {};
-        const PM10 = d.PM10 || {};
-        const O3 = d.O3 || {};
+            // 🕵️‍♂️ 2. เจาะหาข้อมูล (แก้ปัญหา undefined)
+            // ข้อมูลมักจะอยู่ใน LastUpdate แต่บางทีก็อยู่ข้างนอก
+            const info = target.LastUpdate || target;
+            
+            // ฟังก์ชันช่วยแกะค่า (ไม่ว่าจะเป็นตัวเลข หรือ object)
+            const extract = (key) => {
+                const item = info[key];
+                if (!item) return "-";
+                // ถ้าเป็น object ให้เอาค่า value หรือ aqi ข้างใน
+                if (typeof item === 'object') {
+                    return item.value || item.aqi || "-";
+                }
+                return item;
+            };
 
-        airData = {
-            source: 'Air4Thai',
-            aqi: getVal(AQI.aqi || AQI.value), // บางทีชื่อ aqi บางทีชื่อ value
-            pm25: getVal(PM25.value),
-            pm10: getVal(PM10.value),
-            o3: getVal(O3.value),
-            status: getStatus(AQI.Level),
-            time: `${d.date} ${d.time}`,
-            location: foundData.nameTH
-        };
-    } else {
-        // ถ้าลอง 3 ประตูแล้วยังไม่เจอ -> ใช้ OpenMeteo เหมือนเดิม
-        console.log("⚠️ All Air4Thai links failed. Switching to Backup...");
+            // ฟังก์ชันแปลงระดับสี
+            const getStatusText = (lvl) => {
+                const levels = ["", "คุณภาพดีมาก", "คุณภาพดี", "ปานกลาง", "เริ่มมีผลกระทบ", "มีผลกระทบต่อสุขภาพ"];
+                return levels[Number(lvl)] || "รอข้อมูล";
+            };
+
+            // ดึงค่าต่างๆ อย่างระมัดระวัง
+            const pm25Val = extract('PM25');
+            const pm10Val = extract('PM10');
+            const o3Val = extract('O3');
+            
+            // ค่า AQI บางทีซ่อนอยู่ใน object ชื่อ AQI
+            let aqiVal = "-";
+            let aqiLevel = "0";
+            
+            if (info.AQI) {
+                aqiVal = info.AQI.aqi || info.AQI.value || "-";
+                aqiLevel = info.AQI.Level || "0";
+            }
+
+            // จัดการวันที่ (แก้ปัญหา undefined undefined)
+            const dateStr = info.date || target.date || "-";
+            const timeStr = info.time || target.time || "-";
+
+            airData = {
+                source: 'Air4Thai',
+                aqi: (aqiVal === "N/A") ? "-" : aqiVal,
+                pm25: (pm25Val === "N/A") ? "-" : pm25Val,
+                pm10: (pm10Val === "N/A") ? "-" : pm10Val,
+                o3: (o3Val === "N/A") ? "-" : o3Val,
+                status: getStatusText(aqiLevel),
+                time: `${dateStr} ${timeStr}`,
+                location: target.nameTH
+            };
+        } else {
+            throw new Error("No station found in JSON");
+        }
+
+    } catch (e) {
+        console.log(`❌ Air4Thai Error: ${e.message}`);
+        // ถ้าพังจริงๆ ให้ใช้ OpenMeteo เป็นแผนสำรอง
         try {
             const om = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=13.887&longitude=100.579&current=pm2_5,pm10,ozone,us_aqi&timezone=Asia%2FBangkok').then(r => r.json());
             const aqi = om.current.us_aqi;
@@ -91,7 +109,7 @@ async function run() {
         } catch (err) { airData = { error: "Unavailable" }; }
     }
 
-    // --- 2. ดึง Google Sheet (ส่วนนี้ทำงานได้ดีอยู่แล้ว) ---
+    // ส่วนของประกาศ (Google Sheet) เหมือนเดิม
     try {
         const sheetRes = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vSoa90gy2q_JHhquiUHEYcJA_O-JI0ntib_9NG8heNoGv-GEtco9Bv-bWiSib3vrg7E85Dz5H7JnlWO/pub?gid=0&single=true&output=csv');
         const rows = (await sheetRes.text()).split(/\r?\n/);
@@ -106,7 +124,7 @@ async function run() {
 
     const finalData = { updated_at: new Date().toISOString(), air: airData, post: postData };
     fs.writeFileSync('data.json', JSON.stringify(finalData, null, 2));
-    console.log("🎉 Data saved!");
+    console.log("🎉 Data saved successfully!");
 }
 
 run();
