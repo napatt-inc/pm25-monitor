@@ -191,12 +191,24 @@
                     
                     let finalUrl = post.fileUrl;
 
-                    // 🛠️ ถ้าเป็นลิงก์ Google Drive ให้แปลงเป็นลิงก์รูปภาพโดยตรง
-                    if (finalUrl.includes('drive.google.com') && finalUrl.includes('/d/')) {
-                        const idMatch = finalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                        if (idMatch && idMatch[1]) {
-                            // ใช้ลิงก์แบบ Thumbnail (sz=w1000 คือขอรูปขนาดใหญ่กว้าง 1000px)
-                            finalUrl = 'https://drive.google.com/thumbnail?id=' + idMatch[1] + '&sz=w1000';
+                    // 🛠️ ถ้าเป็นลิงก์ Google Drive (รองรับทั้งแบบ /d/ และแบบ id=)
+                    if (finalUrl.includes('drive.google.com')) {
+                        let fileId = null;
+
+                        // แบบที่ 1: ลิงก์ทั่วไปที่มี /d/
+                        if (finalUrl.includes('/d/')) {
+                            const match = finalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                            if (match) fileId = match[1];
+                        } 
+                        // แบบที่ 2: ลิงก์ direct ที่มี id= (ตัวการที่ทำให้ error ก่อนหน้านี้)
+                        else if (finalUrl.includes('id=')) {
+                            const match = finalUrl.match(/id=([a-zA-Z0-9_-]+)/);
+                            if (match) fileId = match[1];
+                        }
+
+                        // ถ้าดึง ID ออกมาได้ ให้เปลี่ยนเป็นลิงก์ Thumbnail ทันที
+                        if (fileId) {
+                            finalUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1000';
                         }
                     }
 
@@ -225,6 +237,7 @@ fetch('./data.json?t=' + new Date().getTime())
 </body>
 
 </html>
+
 
 
 
