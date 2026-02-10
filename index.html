@@ -185,10 +185,29 @@
                 document.getElementById('post-date').innerText = post.timestamp;
                 document.getElementById('post-link').href = post.fileUrl;
 
+                // ส่วนจัดการรูปภาพ (เพิ่มระบบแปลงลิงก์ Google Drive อัตโนมัติ)
                 if (post.type && post.type.trim() === 'image') {
                     const img = document.getElementById('post-img');
-                    img.src = post.fileUrl;
+                    
+                    let finalUrl = post.fileUrl;
+
+                    // 🛠️ ถ้าเป็นลิงก์ Google Drive ให้แปลงเป็นลิงก์รูปภาพโดยตรง
+                    if (finalUrl.includes('drive.google.com') && finalUrl.includes('/d/')) {
+                        const idMatch = finalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                        if (idMatch && idMatch[1]) {
+                            finalUrl = 'https://drive.google.com/uc?export=view&id=' + idMatch[1];
+                        }
+                    }
+
+                    img.src = finalUrl;
                     img.classList.remove('hidden');
+                    
+                    // เพิ่ม Error handling: ถ้ารูปโหลดไม่ได้จริงๆ ให้ซ่อนไปเลย
+                    img.onerror = function() {
+                        this.classList.add('hidden');
+                        console.log("❌ โหลดรูปภาพไม่สำเร็จ: " + finalUrl);
+                    };
+
                 } else {
                     document.getElementById('post-img').classList.add('hidden');
                 }
@@ -205,3 +224,4 @@ fetch('./data.json?t=' + new Date().getTime())
 </body>
 
 </html>
+
