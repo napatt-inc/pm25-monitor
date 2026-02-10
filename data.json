@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-02-10T12:45:39.471Z",
+  "updated_at": "2026-02-10T12:54:47.113Z",
   "air": {
-    "source": "Air4Thai",
+    "source": "Air4Thai + OpenMeteo",
     "aqi": "-",
     "pm25": "-",
-    "pm10": "-",
-    "o3": "-",
-    "status": "รอข้อมูล",
-    "time": "- -",
+    "pm10": 48.7,
+    "o3": 112,
+    "status": "ปานกลาง",
+    "time": "undefined undefined",
     "location": "สำนักงานเขตหลักสี่"
   },
   "post": {
