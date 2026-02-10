@@ -1,0 +1,19 @@
+{
+  "updated_at": "2026-02-10T12:19:31.326Z",
+  "air": {
+    "source": "OpenMeteo (Backup)",
+    "aqi": 183,
+    "pm25": 48.4,
+    "pm10": 48.7,
+    "o3": 112,
+    "status": "เริ่มมีผลกระทบ",
+    "time": "2026-02-10 19:00",
+    "location": "หลักสี่ (Backup)"
+  },
+  "post": {
+    "timestamp": "2/10/2026 12:14:39",
+    "type": "pdf",
+    "title": "รายชื่อผู้มีสิทธิ์สอบสัมภาษณ์",
+    "fileUrl": "https://drive.google.com/file/d/1JkxwhfIF1w5bUAQ6qRpLOVlE-blx2kWN/view?usp=drivesdk"
+  }
+}
