@@ -195,7 +195,8 @@
                     if (finalUrl.includes('drive.google.com') && finalUrl.includes('/d/')) {
                         const idMatch = finalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
                         if (idMatch && idMatch[1]) {
-                            finalUrl = 'https://drive.google.com/uc?export=view&id=' + idMatch[1];
+                            // ใช้ลิงก์แบบ Thumbnail ขนาดใหญ่ (w1000) จะโหลดง่ายกว่าและไม่ค่อยติด Permission
+                            finalUrl = 'https://drive.google.com/thumbnail?id=' + idMatch[1] + '&sz=w1000';
                         }
                     }
 
@@ -224,4 +225,5 @@ fetch('./data.json?t=' + new Date().getTime())
 </body>
 
 </html>
+
 
