@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-02-10T12:31:56.105Z",
+  "updated_at": "2026-02-10T12:39:09.279Z",
   "air": {
     "source": "Air4Thai",
     "aqi": "-",
@@ -7,7 +7,7 @@
     "pm10": "-",
     "o3": "-",
     "status": "รอข้อมูล",
-    "time": "undefined undefined",
+    "time": "- -",
     "location": "สำนักงานเขตหลักสี่"
   },
   "post": {
