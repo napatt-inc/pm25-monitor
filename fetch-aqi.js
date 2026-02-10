@@ -1,64 +1,75 @@
-// fetch-aqi.js
 const fs = require('fs');
 
 async function run() {
-    console.log("🤖 Starting Data Fetcher...");
+    console.log("🤖 Robot Starting...");
     
     let airData = {};
     let postData = null;
 
-    // --- 1. ดึงข้อมูล Air4Thai ---
+    // --- 1. ดึงข้อมูล Air4Thai (ใช้ลิงก์ใหม่ HTTPS) ---
     try {
         console.log("Fetching Air4Thai...");
-        // ใช้ Region 1 (กทม.)
-        const res = await fetch('http://air4thai.pcd.go.th/services/getNewAQI_JSON.php?region=1', {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+        // เปลี่ยนมาใช้ HTTPS และ www.air4thai.com ซึ่งเสถียรกว่า
+        const res = await fetch('https://www.air4thai.com/forweb/getAQI_JSON.php?region=1', {
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Referer': 'https://www.air4thai.com/'
+            }
         });
         
-        if (!res.ok) throw new Error("Air4Thai Connection Failed");
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
         
         const data = await res.json();
         const stations = data.stations || data;
 
-        // 🎯 สูตรค้นหาเดิม: หลักสี่ (bkp97t) -> บางเขน (bkp53t)
+        // 🎯 ค้นหา: เขตหลักสี่ (bkp97t) เป็นอันดับแรก
         let target = stations.find(s => s.stationID === "bkp97t");
+        
+        // ถ้าไม่เจอ ให้ลองหาคำว่า "หลักสี่" ในชื่อไทย
         if (!target) {
-            console.log("⚠️ หลักสี่ not found, switching to Bang Khen...");
-            target = stations.find(s => s.stationID === "bkp53t" || s.nameTH.includes("บางเขน"));
+            target = stations.find(s => s.nameTH.includes("หลักสี่"));
+        }
+
+        // ถ้ายังไม่เจออีก ให้ไปบางเขน (bkp53t)
+        if (!target) {
+            console.log("⚠️ Lak Si not found, switching to Bang Khen...");
+            target = stations.find(s => s.stationID === "bkp53t");
         }
 
         if (!target) throw new Error("No station found");
 
-        // จัดฟอร์แมตข้อมูล
-        const getVal = (v) => (v && v.value && v.value !== "-" && v.value !== "N/A") ? v.value : "-";
-        const getAqi = () => {
-             if (target.LastUpdate?.AQI?.aqi && target.LastUpdate.AQI.aqi !== "-") return target.LastUpdate.AQI.aqi;
-             if (target.AQI?.aqi && target.AQI.aqi !== "-") return target.AQI.aqi;
-             return "-";
-        };
+        console.log(`✅ Found Station: ${target.nameTH} (${target.stationID})`);
+
+        const getVal = (v) => (v && v !== "-" && v !== "N/A") ? v : "-";
         
         const getStatus = (lvl) => {
             const levels = ["", "คุณภาพดีมาก", "คุณภาพดี", "ปานกลาง", "เริ่มมีผลกระทบ", "มีผลกระทบต่อสุขภาพ"];
-            return levels[lvl] || "รอข้อมูล";
+            return levels[Number(lvl)] || "รอข้อมูล";
         };
 
+        // ตรวจสอบโครงสร้างข้อมูล (บางที Air4Thai ส่งมาไม่เหมือนกัน)
+        const AQI = target.AQI || target.LastUpdate.AQI;
+        const PM25 = target.PM25 || target.LastUpdate.PM25;
+        const PM10 = target.PM10 || target.LastUpdate.PM10;
+        const O3 = target.O3 || target.LastUpdate.O3;
+        const date = target.date || target.LastUpdate.date;
+        const time = target.time || target.LastUpdate.time;
+
         airData = {
-            source: 'Air4Thai (GitHub)',
-            aqi: getAqi(),
-            pm25: getVal(target.LastUpdate.PM25),
-            pm10: getVal(target.LastUpdate.PM10),
-            o3: getVal(target.LastUpdate.O3),
-            status: target.LastUpdate?.AQI?.Level ? getStatus(target.LastUpdate.AQI.Level) : "รอข้อมูล",
-            time: (target.LastUpdate.date + " " + target.LastUpdate.time),
+            source: 'Air4Thai',
+            aqi: getVal(AQI.aqi),
+            pm25: getVal(PM25.value),
+            pm10: getVal(PM10.value),
+            o3: getVal(O3.value),
+            status: getStatus(AQI.Level),
+            time: `${date} ${time}`,
             location: target.nameTH
         };
-        console.log("✅ Air4Thai Success");
 
     } catch (e) {
         console.error("❌ Air4Thai Failed:", e.message);
         // Fallback: OpenMeteo
         try {
-            console.log("🔄 Switching to OpenMeteo...");
             const om = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=13.887&longitude=100.579&current=pm2_5,pm10,ozone,us_aqi&timezone=Asia%2FBangkok').then(r => r.json());
             const aqi = om.current.us_aqi;
             let st = "ปานกลาง";
@@ -74,22 +85,17 @@ async function run() {
                 time: om.current.time.replace('T', ' '),
                 location: "หลักสี่ (Backup)"
             };
-        } catch (err) {
-            airData = { error: "Unavailable" };
-        }
+        } catch (err) { airData = { error: "Unavailable" }; }
     }
 
-    // --- 2. ดึงข้อมูล Google Sheet ---
+    // --- 2. ดึง Google Sheet (คงเดิม) ---
     try {
-        console.log("Fetching Google Sheet...");
         const sheetRes = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vSoa90gy2q_JHhquiUHEYcJA_O-JI0ntib_9NG8heNoGv-GEtco9Bv-bWiSib3vrg7E85Dz5H7JnlWO/pub?gid=0&single=true&output=csv');
         const text = await sheetRes.text();
         const rows = text.split(/\r?\n/);
-        // (Logic เดิม)
         if (rows.length > 1) {
             let lastRow = rows[rows.length - 1] || rows[rows.length - 2];
             if (lastRow) {
-                // Parse CSV ง่ายๆ
                 const cols = lastRow.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
                 if(cols.length >= 3) {
                     postData = {
@@ -101,10 +107,8 @@ async function run() {
                 }
             }
         }
-        console.log("✅ Sheet Success");
-    } catch (e) { console.error("Sheet Failed", e); }
+    } catch (e) { console.error("Sheet Failed"); }
 
-    // --- 3. บันทึกลงไฟล์ data.json ---
     const finalData = {
         updated_at: new Date().toISOString(),
         air: airData,
@@ -112,7 +116,7 @@ async function run() {
     };
 
     fs.writeFileSync('data.json', JSON.stringify(finalData, null, 2));
-    console.log("🎉 Data saved to data.json");
+    console.log("🎉 Updated Data Saved!");
 }
 
 run();
