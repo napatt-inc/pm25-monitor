@@ -1,19 +1,14 @@
 {
-  "updated_at": "2026-02-11T08:05:28.722Z",
+  "updated_at": "2026-02-11T11:33:19.981Z",
   "air": {
     "source": "Air4Thai + OpenMeteo",
-    "aqi": "135",
-    "pm25": "50.3",
-    "pm10": "22.3",
-    "o3": "217",
+    "aqi": "134",
+    "pm25": "50.2",
+    "pm10": "37.6",
+    "o3": "131",
     "status": "เริ่มมีผลกระทบ",
-    "time": "2026-02-11 14:00",
+    "time": "2026-02-11 18:00",
     "location": "สำนักงานเขตหลักสี่"
   },
-  "post": {
-    "timestamp": "2/11/2026 10:12:27",
-    "type": "image",
-    "title": "ทดสอบการโพส",
-    "fileUrl": "https://drive.google.com/uc?export=view&id=1IB25baiWWiyOel4HU9Y-Dq2HBN7Sac-a"
-  }
+  "post": null
 }
