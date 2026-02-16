@@ -1,14 +1,19 @@
 {
-  "updated_at": "2026-02-15T23:54:44.420Z",
+  "updated_at": "2026-02-16T05:23:12.590Z",
   "air": {
     "source": "Air4Thai + OpenMeteo",
-    "aqi": "98",
-    "pm25": "37.1",
-    "pm10": "66.6",
-    "o3": "12",
-    "status": "ปานกลาง",
-    "time": "2026-02-16 06:00",
+    "aqi": "103",
+    "pm25": "38.4",
+    "pm10": "52.3",
+    "o3": "221",
+    "status": "เริ่มมีผลกระทบ",
+    "time": "2026-02-16 12:00",
     "location": "สำนักงานเขตหลักสี่"
   },
-  "post": null
+  "post": {
+    "timestamp": "2/16/2026 8:26:18",
+    "type": "image",
+    "title": "แผนการปฎิบัติงาน",
+    "fileUrl": "https://drive.google.com/uc?export=view&id=1884FOcMUzwaH8TTYmapEusWZ1do337hN"
+  }
 }
