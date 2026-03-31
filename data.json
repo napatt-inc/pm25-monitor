@@ -1,14 +1,19 @@
 {
-  "updated_at": "2026-03-31T08:04:57.057Z",
+  "updated_at": "2026-03-31T09:59:25.108Z",
   "air": {
     "source": "Air4Thai + OpenMeteo",
-    "aqi": "46",
-    "pm25": "23.2",
-    "pm10": "24.4",
-    "o3": "219",
+    "aqi": "49",
+    "pm25": "24.5",
+    "pm10": "25.4",
+    "o3": "218",
     "status": "คุณภาพดี",
-    "time": "2026-03-31 11:00",
+    "time": "2026-03-31 16:00",
     "location": "สำนักงานเขตหลักสี่"
   },
-  "post": null
+  "post": {
+    "timestamp": "3/12/2026 13:36:36",
+    "type": "image",
+    "title": "ระเบียบการปฏิบัติงานนอกสถานที่",
+    "fileUrl": "https://drive.google.com/file/d/1klFM-vo7xksd9Fnoyq8Z1tyCTNvKyHq5/view?usp=drivesdk"
+  }
 }
